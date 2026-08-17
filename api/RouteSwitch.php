@@ -27,6 +27,21 @@ abstract class RouteSwitch
         require __DIR__ . '/endpoints/usuarios/login.php';
     }
 
+    protected function calcular_conta()
+    {
+        require __DIR__ . '/endpoints/contas/calcular_conta.php';
+    }
+
+    protected function exibir_conta()
+    {
+        require __DIR__ . '/endpoints/contas/exibir_conta.php';
+    }
+
+    protected function listar_conta()
+    {
+        require __DIR__ . '/endpoints/contas/listar_conta.php';
+    }
+
     protected function admin()
     {
         require __DIR__ . '/logs/logs.log';
