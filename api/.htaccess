@@ -1,0 +1,35 @@
+# Impedindo a listagem de qualquer arquivo e diretório
+Options -Indexes
+
+# Impedindo o acesso direto ao arquivo .htaccess
+<files ~ "^.*\.([Hh][Tt][Aa])">
+    order allow,deny
+    deny from all
+    satisfy all
+</files>
+
+# Ativação RewriteEngine que nos permite gerenciar as rotas
+RewriteEngine On
+
+# Definição da rota principal
+RewriteBase /
+
+# Se o diretório ou arquivos digitados na URL não existirem, seguir a RewriteRule
+RewriteCond %{REQUEST_FILENAME} !-d       
+RewriteCond %{REQUEST_FILENAME} !-f
+
+# Rewrite Rule, redirecionar todas as requests para o index.php
+RewriteRule ^(.+)$ /index.php [QSA,L]
+
+# ÍNICIO PÁGINAS DE ERROS
+ErrorDocument 401 /401.html
+ErrorDocument 403 /403.html
+ErrorDocument 404 /404.html
+# FIM PÁGINAS DE ERROS
+
+
+# php_value upload_max_filesize 128M
+# php_value post_max_size 128M
+# php_value max_execution_time 300
+# php_value max_input_time 300
+# php_value memory_limit 256M

@@ -1,0 +1,50 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/*
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# Build artifacts and coverage
+build/
+coverage/
+
+# Environment files
+.env/
+
+# API (PHP) — secrets, logs e credenciais
+api/conexao/env.php
+api/conexao/env_prod.php
+api/logs/logs.log
+api/.auth/
+
+# Android
+android/.gradle/
+android/local.properties
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json

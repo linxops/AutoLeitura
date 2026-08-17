@@ -1,0 +1,176 @@
+name: AppFlutter
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+
+jobs:
+  #  Teste:
+  #    runs-on: ubuntu-latest
+  #    steps:
+  #
+  #    - name: Checkout
+  #      uses: actions/checkout@v4.1.1
+  #
+  #    - name: Setup Flutter
+  #      uses: subosito/flutter-action@v2
+  #      with:
+  #        channel: "stable"
+  #        flutter-version: "3.16.2"
+  #
+  #    - name: Setup Java
+  #      uses: actions/setup-java@v1
+  #      with:
+  #        java-version: '12.x'
+  #
+  #    - name: Setup Dart Dev Test
+  #      run: dart pub add --dev test
+  #
+  #    - name: Install dependencies
+  #      run: flutter pub get
+  #
+  #    - name: Analyze
+  #      run: flutter analyze
+  #
+  #    - name: Format Test lib/
+  #      run: dart format ./lib
+  #
+  #    - name: Format Test test/
+  #      run: dart format ./test
+  #
+  #    - name: Run Test
+  #      run: flutter test --coverage --verbose
+  #
+  #    - name: Minimum Test Coverage Percentage
+  #      uses: VeryGoodOpenSource/very_good_coverage@v2.1.0
+  #      with:
+  #        min_coverage: 0
+  #
+  #    - name: Upload Coverage Reports to Codecov
+  #      uses: codecov/codecov-action@v3
+  #      env:
+  #        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  #
+  #    - name: Enviar Mensagem Telegram
+  #      env:
+  #        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  #        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+  #        GITHUB_COMMIT_ID: ${{ github.sha }}
+  #      run: sh ./.scripts/sendURLTeste.sh
+
+
+  Build:
+    #    needs: Teste
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.1.1
+
+    - name: Setup Java
+      uses: actions/setup-java@v1
+      with:
+        java-version: "12.x"
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: "stable"
+        flutter-version: "3.13.8"
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Build Android
+      #- name: Build Web
+      # id: build_web
+      #run: flutter build web
+      #continue-on-error: true
+
+      id: build_android
+      run: flutter build apk
+
+    - name: Save APK to Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: APK-AUTOLEITURA
+        path: build/app/outputs/apk/release/app-release.apk
+      continue-on-error: true
+
+  Deploy:
+    needs: Build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4.1.1
+
+    - name: Get APK from Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: APK-AUTOLEITURA
+        path: build/app/outputs/apk/release/app-release.apk
+
+    - name: API Download
+      env:
+        MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+      run: cd ./.deploy_homol/ && sh .././.scripts/downloadAPK.sh #./.deploy_homol/
+
+    - run: cd ./.deploy_homol/
+
+    - name: Send mail
+      uses: dawidd6/action-send-mail@v3
+      with:
+        # Specify connection via URL (replaces server_address, server_port, secure,
+        # username and password)
+        #
+        # Format:
+        #
+        #  * smtp://user:password@server:port
+        #  * smtp+starttls://user:password@server:port
+        #connection_url: ${{secrets.MAIL_CONNECTION}}
+        # Required mail server address if not connection_url:
+        server_address: ${{secrets.MAIL_SERVER_ADDRESS}}
+        # Server port, default 25:
+        server_port: ${{secrets.SERVER_PORT}}
+        # Optional whether this connection use TLS (default is true if server_port is 465)
+        secure: false
+        # Optional (recommended) mail server username:
+        username: ${{secrets.MAIL_USERNAME}}
+        # Optional (recommended) mail server password:
+        password: ${{secrets.MAIL_PASSWORD}}
+        # Required mail subject:
+        subject: Github Actions job result
+        # Required recipients' addresses:
+        to: sidneyoliveirajunior@gmail.com
+        # Required sender full name (address can be skipped):
+        from: ${{secrets.MAIL_USERNAME}} # <user@example.com>
+        # Optional plain body:
+        #body: Build job of ${{github.repository}} completed successfully!
+        # Optional HTML body read from file:
+        html_body: file://./.deploy_homol/autoleitura.html
+        # Optional carbon copy recipients:
+        #cc: kyloren@example.com,leia@example.com
+        # Optional blind carbon copy recipients:
+        #bcc: r2d2@example.com,hansolo@example.com
+        # Optional recipient of the email response:
+        #reply_to: luke@example.com
+        # Optional Message ID this message is replying to:
+        #in_reply_to: <random-luke@example.com>
+        # Optional unsigned/invalid certificates allowance:
+        ignore_cert: true
+        # Optional converting Markdown to HTML (set content_type to text/html too):
+        convert_markdown: true
+        # Optional attachments:
+        #attachments: ./.deploy_homol/app-release.apk/app-release.apk
+        # Optional priority: 'high', 'normal' (default) or 'low'
+        priority: low
+
+
+
+
+
