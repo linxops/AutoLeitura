@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# Caminho para o arquivo com a mensagem de commit (fornecido pelo Git)
+COMMIT_MSG_FILE=$1
+
+# Lê a mensagem de commit
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# REGEX ajustada para exigir Emoji (Unicode ou Shortcode) antes do Conventional Commit:
+# Aceita: ✨ feat: mensagem | :sparkles: feat(auth)!: mensagem | ✨ feat: mensagem
+EMOJI_PATTERN="(:[a-zA-Z0-9_+-]+:|[\x{1F300}-\x{1F9FF}]|[\x{2600}-\x{26FF}]|[\x{2700}-\x{27BF}])"
+CONVENTIONAL_TYPES="(feat|fix|docs|style|refactor|test|chore|build|ci|perf|revert|raw|cleanup|remove)"
+
+CONVENTIONAL_COMMIT_REGEX="^${EMOJI_PATTERN}\s+${CONVENTIONAL_TYPES}(\([a-zA-Z0-9_.-]+\))?(!)?:\s.*$"
+
+# Valida a mensagem usando Perl-compatible Regular Expressions (-P)
+if ! echo "$COMMIT_MSG" | grep -qP "$CONVENTIONAL_COMMIT_REGEX"; then
+    echo "=========================================================================="
+    echo "ERRO: A mensagem de commit não segue o formato [Emoji + Conventional Commit]."
+    echo "=========================================================================="
+    echo
+    echo "O formato obrigatório é:"
+    echo "  <emoji> <tipo>(<escopo opcional>): <descrição>"
+    echo
+    echo "Exemplos válidos:"
+    echo "  ✨ feat(auth): adicionar funcionalidade de login"
+    echo "  🐛 fix(api)!: resolver problema de timeout"
+    echo "  📚 docs(readme): atualizar instruções de instalação"
+    echo "  :sparkles: feat: adicionar funcionalidade de login"
+    echo
+    echo "Tipos aceitos:"
+    echo "  feat, fix, docs, style, refactor, test, chore, build, ci, perf, revert,"
+    echo "  raw, cleanup, remove"
+    echo "=========================================================================="
+    echo
+    exit 1
+fi
+
+exit 0
