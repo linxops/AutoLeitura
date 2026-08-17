@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:scoped_model/scoped_model.dart';
 
-var apiUrl = 'https://api.autoleitura.online/usuario';
+var apiUrl = 'https://api.autoleitura.online/login';
 
 class User {
   final int id;
@@ -14,8 +14,9 @@ class User {
   final String nome;
   final String celular;
   final String email;
+  final String role;
 
-  User(this.id, this.local, this.nome, this.celular, this.email);
+  User(this.id, this.local, this.nome, this.celular, this.email, this.role);
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
@@ -24,6 +25,7 @@ class User {
       json['nome'],
       json['celular'],
       json['email'],
+      json['role'] ?? 'usuario',
     );
   }
 }
@@ -48,9 +50,13 @@ class LoginModel extends Model {
     _userModel = userModel;
   }
 
-  Future<User?> fetchUserByCode(int id) async {
+  Future<User?> login(int codigo, String senha) async {
     try {
-      final response = await http.get(Uri.parse('$apiUrl?id=$id'));
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'codigo': codigo, 'senha': senha}),
+      );
 
       if (response.statusCode == 200) {
         Map<String, dynamic> data = json.decode(response.body);
@@ -59,28 +65,22 @@ class LoginModel extends Model {
           List<dynamic> users = data['result'];
 
           if (users.isNotEmpty) {
-            Map<String, dynamic>? userData = users.firstWhere(
-              (user) => user['id'] == id,
-              orElse: () => null,
-            );
-            if (userData != null) {
-              User user = User.fromJson(userData);
-              _userModel.setCurrentUser(user);
-              return user;
-            }
+            User user = User.fromJson(users.first);
+            _userModel.setCurrentUser(user);
+            return user;
           } else {
             throw Exception('Usuário não encontrado');
           }
         } else {
-          throw Exception('Resposta da API não possui o código esperado');
+          String message = data['message'] ?? 'Falha no login';
+          throw Exception(message);
         }
       } else {
-        throw Exception('Erro ao obter usuário: ${response.statusCode}');
+        throw Exception('Erro ao realizar login: ${response.statusCode}');
       }
     } catch (error) {
-      throw Exception('Erro ao obter usuário: $error');
+      throw Exception('Erro ao realizar login: $error');
     }
-    return null;
   }
 }
 
@@ -93,6 +93,7 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   final codigoUsuarioController = TextEditingController();
+  final senhaController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -124,6 +125,15 @@ class _LoginState extends State<Login> {
                       border: OutlineInputBorder(),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: senhaController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Senha',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                   const SizedBox(height: 20.0),
                   Material(
                     color: const Color.fromARGB(
@@ -133,15 +143,16 @@ class _LoginState extends State<Login> {
                       borderRadius: BorderRadius.circular(20.0),
                       onTap: () async {
                         String idString = codigoUsuarioController.text;
+                        String senha = senhaController.text;
 
                         try {
                           int id = int.parse(idString);
-                          User? user = await model.fetchUserByCode(id);
+                          User? user = await model.login(id, senha);
 
                           if (user != null) {
                             _mostrarDialog(
                               context,
-                              'Código válido. Nome: ${user.nome}',
+                              'Login válido. Nome: ${user.nome}',
                               () {
                                 Navigator.push(
                                   context,
