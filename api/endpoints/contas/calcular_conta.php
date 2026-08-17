@@ -1,59 +1,99 @@
 <?php
-include_once("../conexao/conn.php");
-include_once("../date.php");
-require "../functions/functions.php";
-$dir = "../logs/logs.log";
-$codigo=1;
+include_once(__DIR__ . '/../../conexao/conn.php');
+include_once(__DIR__ . '/../../date.php');
+require_once __DIR__ . '/../../functions/functions.php';
 
-##Calcula conta
-//Leitura Atual
-$query = $pdo->query("SELECT leitura FROM tb_leituras WHERE codigo = '$codigo' AND mes = '$mesAtual'");
-$resul = $query->fetchAll(PDO::FETCH_ASSOC);
-if($resul){
-	$leituraatual=$resul[0]['leitura'];
-}else{
-echo "ERROR";
+$logDir = __DIR__ . '/../../logs';
+
+// Recebe dados JSON da requisição POST
+$data = json_decode(file_get_contents("php://input"), true);
+
+if (!$data || !isset($data["codigo"]) || !is_numeric($data["codigo"])) {
+    resposta(0, null, "Erro nos dados recebidos");
+    exit;
 }
 
-//Leitura Anterior
-$query = $pdo->query("SELECT leitura FROM tb_leituras WHERE codigo = '$codigo'  AND mes = '$mesAnterior'");
-$resul = $query->fetchAll(PDO::FETCH_ASSOC);
-if($resul){
-	$leituraanterior=$resul[0]['leitura'];
-}else{
-echo "ERROR";
+$codigo = (int) $data["codigo"];
+
+// Valida o usuário
+$stmt = $pdo->prepare("SELECT id FROM tb_usuarios WHERE id = :codigo");
+$stmt->bindParam(":codigo", $codigo, PDO::PARAM_INT);
+$stmt->execute();
+if (!$stmt->fetch()) {
+    resposta(0, null, "Usuário não encontrado");
+    exit;
 }
 
-//Busca Valor M³
-$query = $pdo->query("SELECT valor FROM tb_valor ORDER BY id DESC LIMIT 1;");
-$res = $query->fetch(PDO::FETCH_ASSOC);
+// Leitura do mês atual e do mês anterior
+$stmt = $pdo->prepare("SELECT leitura FROM tb_leituras WHERE codigo = :codigo AND mes = :mes");
+$stmt->bindParam(":codigo", $codigo, PDO::PARAM_INT);
+$stmt->bindParam(":mes", $mesAtual);
+$stmt->execute();
+$leituraatual = $stmt->fetchColumn();
 
-if ($res) {
-	$valormetrocubico=$res['valor'];
+$stmt->bindParam(":mes", $mesAnterior);
+$stmt->execute();
+$leituraanterior = $stmt->fetchColumn();
+
+if ($leituraatual === false || $leituraanterior === false) {
+    resposta(0, null, "Leituras não encontradas para o mês atual ou anterior");
+    exit;
+}
+
+// Valor do m³ vigente (registro mais recente)
+$valor = $pdo->query("SELECT valor FROM tb_valor ORDER BY id DESC LIMIT 1")->fetchColumn();
+if ($valor === false) {
+    resposta(0, null, "Valor do metro cúbico não cadastrado");
+    exit;
+}
+
+$consumo = calcularConsumo($leituraatual, $leituraanterior);
+$valorconta = calcularConta($consumo, $valor);
+$mensagem = "Seu consumo foi de $consumo metros cubicos";
+
+// Insere ou recalcula a conta do mês (UNIQUE codigouser + mesreferencia)
+$stmt = $pdo->prepare("SELECT id FROM tb_contas WHERE codigouser = :codigo AND mesreferencia = :mes");
+$stmt->bindParam(":codigo", $codigo, PDO::PARAM_INT);
+$stmt->bindParam(":mes", $mesAtual);
+$stmt->execute();
+$existe = $stmt->fetch();
+
+$campos = "dataemissao = CURDATE(), datavencimento = DATE_ADD(CURDATE(), INTERVAL 10 DAY),
+           valorconta = :valorconta, valormetrocubico = :valor, leituraatual = :leituraatual,
+           leituraanterior = :leituraanterior, mensagem = :mensagem";
+
+if ($existe) {
+    $sql = "UPDATE tb_contas SET $campos WHERE codigouser = :codigo AND mesreferencia = :mes";
 } else {
-    echo "Erro ao buscar valor";
-    
+    $sql = "INSERT INTO tb_contas (mesreferencia, dataemissao, datavencimento, valorconta,
+                                   valormetrocubico, leituraatual, leituraanterior, mensagem, codigouser)
+            VALUES (:mes, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 10 DAY), :valorconta,
+                    :valor, :leituraatual, :leituraanterior, :mensagem, :codigo)";
 }
 
+$stmt = $pdo->prepare($sql);
+$stmt->bindParam(":codigo", $codigo, PDO::PARAM_INT);
+$stmt->bindParam(":mes", $mesAtual);
+$stmt->bindParam(":valorconta", $valorconta);
+$stmt->bindParam(":valor", $valor);
+$stmt->bindParam(":leituraatual", $leituraatual, PDO::PARAM_INT);
+$stmt->bindParam(":leituraanterior", $leituraanterior, PDO::PARAM_INT);
+$stmt->bindParam(":mensagem", $mensagem);
 
-$consumo=calcularConsumo($leituraatual, $leituraanterior);
-$valorconta= calcularConta($consumo, $valormetrocubico);
-echo "Consumo".$consumo;
-echo "A conta calculada é: R$" .$valorconta;
-
-// Query de inserção
-$query = "INSERT INTO tb_contas (mesreferencia,dataemissao, datavencimento, valorconta, valormetrocubico, leituraatual, leituraanterior, mensagem, codigouser) VALUES ('$mesAtual', now(), date_add(now(),interval 10 day), $valorconta, $valormetrocubico, $leituraatual, $leituraanterior, 'Seu consumo foi de $consumo metros cubicos', $codigo)";
-
-try {
-    // Executar a query
-    $pdo->exec($query);
-
-    #echo "Inserção realizada com sucesso!";
-} catch (PDOException $e) {
-    $mensagem_log = "LOG: Erro ao inserir na tabela tb_contas: " . $e->getMessage(). " " . date("Y-m-d H:i:s") . PHP_EOL;
-    file_put_contents($dir, $mensagem_log, FILE_APPEND);
+if (!$stmt->execute()) {
+    $mensagem_log = "LOG: Erro ao salvar conta do usuário $codigo: " . implode(' ', $stmt->errorInfo()) . " " . date("Y-m-d H:i:s") . PHP_EOL;
+    file_put_contents($logDir . '/logs.log', $mensagem_log, FILE_APPEND);
+    resposta(0, null, "Erro ao calcular a conta");
+    exit;
 }
 
-
-
-?>
+resposta(1, [[
+    "codigouser" => $codigo,
+    "mesreferencia" => $mesAtual,
+    "leituraatual" => (int) $leituraatual,
+    "leituraanterior" => (int) $leituraanterior,
+    "consumo" => (int) $consumo,
+    "valormetrocubico" => (float) $valor,
+    "valorconta" => (float) $valorconta,
+    "mensagem" => $mensagem,
+]]);
