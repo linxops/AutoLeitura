@@ -1,0 +1,21 @@
+### INICIO PROTEÇÃO .htaccess
+<files ~ "^.*\.([Hh][Tt][Aa])">
+order allow,deny
+deny from all
+satisfy all
+</files>
+
+
+### INICIO PROTEÇÃO home.php
+<files "home.php">
+AuthType Basic
+AuthName "Área Restrita"
+AuthUserFile /var/www/apiAutoLeitura/.auth/.htpasswd
+Require valid-user
+</files>
+
+
+## ÍNICIO PÁGINAS DE ERROS
+ErrorDocument 401 /apiAutoLeitura/401.html
+ErrorDocument 403 /403.html
+## FIM PÁGINAS DE ERROS
