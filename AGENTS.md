@@ -32,8 +32,8 @@ App Flutter (`autoleitura`) Android-only, com a API PHP em `api/` (antes um repo
 
 ## Git / CI
 
-- **Commit-msg hook obrigatório**: todo commit precisa de Emoji + Conventional Commit (`<emoji> <tipo>(<escopo>): <descrição>`, tipos: feat/fix/docs/style/refactor/test/chore/build/ci/perf/revert/raw/cleanup/remove). O hook fica em `.githooks/commit-msg` e é ativado via `git config core.hooksPath .githooks` (config local, não versionada).
-- Trabalhar em `develop`/`feature-api` (branch atual do checkout; `feature-api` é idêntica a `develop`). `master` só recebe merge/PR e é **protegida** (exige 1 review, bloqueia push/force direto).
+- **Commit-msg hook obrigatório**: todo commit precisa de Emoji + Conventional Commit (`<emoji> <tipo>(<escopo>): <descrição>`, tipos: feat/fix/docs/style/refactor/test/chore/build/ci/perf/revert/raw/cleanup/remove). O hook fica em `.githooks/commit-msg` e é ativado via `git config core.hooksPath .githooks` (config local, não versionada). `.scripts/commit.sh` é um helper interativo que monta a mensagem no formato correto e chama `git commit` (use-o em vez de montar manualmente).
+- Trabalhar em `develop`/`feature-api` (branch atual do checkout; `feature-api` é idêntica a `develop`). `master` só recebe merge/PR e é **protegida**, mas a exigência de review foi **removida** (repo solo — sem auto-aprovação no GitHub); push/force direto continua bloqueado.
 - CI (`.github/workflows/develop.yaml`) dispara em push para `master` (merge da develop), `pull_request` para `master` e `workflow_dispatch`. Não dispara em push para `develop`/`feature-api`. O job Deploy roda apenas em push (merge), não em PR.
 - Pipeline: Build (`flutter build apk`, Flutter 3.13.8) → upload de artefato → Deploy (download do APK + email). O job de teste está comentado e **não** roda no CI.
 - `.scripts/*.sh` são helpers do CI (Telegram/email).
