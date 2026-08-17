@@ -10,19 +10,14 @@ if (!isset($pdo)) {
     die("Erro: A variável \$pdo não foi definida.");
 }
 
-$sql = "SELECT * FROM tb_usuarios";
+// Colunas explícitas: nunca expor o hash de senha
+$sql = "SELECT id, local, nome, celular, email, role FROM tb_usuarios";
 $stmt = $pdo->prepare($sql);
 $stmt->execute();
 
 $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
-for ($i = 0; $i < count($res); $i++) {
-    foreach ($res[$i] as $key => $value) {
-        
-        $dados = $res;
-    }
-}
+$dados = $res;
 
 	$response = ($res) ?
     json_encode(array("code" => 1, "result" => $dados)) :

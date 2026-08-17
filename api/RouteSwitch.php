@@ -22,6 +22,11 @@ abstract class RouteSwitch
         require __DIR__ . '/endpoints/leituras/leituras.php';
     }
 
+    protected function login()
+    {
+        require __DIR__ . '/endpoints/usuarios/login.php';
+    }
+
     protected function admin()
     {
         require __DIR__ . '/logs/logs.log';
