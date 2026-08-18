@@ -2,7 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-var apiUrl = 'https://api.autoleitura.online/postLeituras';
+const apiBaseUrl = String.fromEnvironment(
+  'API_URL',
+  defaultValue: 'https://api.autoleitura.online',
+);
+
+var apiUrl = '$apiBaseUrl/postLeituras';
 
 class Leitura extends StatefulWidget {
   final int userId;

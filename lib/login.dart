@@ -6,7 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:scoped_model/scoped_model.dart';
 
-var apiUrl = 'https://api.autoleitura.online/login';
+const apiBaseUrl = String.fromEnvironment(
+  'API_URL',
+  defaultValue: 'https://api.autoleitura.online',
+);
+
+var apiUrl = '$apiBaseUrl/login';
 
 class User {
   final int id;
