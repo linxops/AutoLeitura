@@ -1,39 +1,15 @@
 import 'dart:convert';
-import 'package:autoleitura/leitura.dart';
+import 'package:autoleitura/adminhome.dart';
+import 'package:autoleitura/api.dart';
+import 'package:autoleitura/models.dart';
+import 'package:autoleitura/usuariohome.dart';
 // ignore: unnecessary_import
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:scoped_model/scoped_model.dart';
 
-const apiBaseUrl = String.fromEnvironment(
-  'API_URL',
-  defaultValue: 'https://api.autoleitura.online',
-);
-
-var apiUrl = '$apiBaseUrl/login';
-
-class User {
-  final int id;
-  final String local;
-  final String nome;
-  final String celular;
-  final String email;
-  final String role;
-
-  User(this.id, this.local, this.nome, this.celular, this.email, this.role);
-
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      json['id'],
-      json['local'],
-      json['nome'],
-      json['celular'],
-      json['email'],
-      json['role'] ?? 'usuario',
-    );
-  }
-}
+const apiUrl = '$apiBaseUrl/login';
 
 class UserModel extends Model {
   late User _currentUser;
@@ -162,9 +138,9 @@ class _LoginState extends State<Login> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => Leitura(
-                                      userId: user.id,
-                                    ),
+                                    builder: (context) => user.role == 'admin'
+                                        ? AdminHome(user: user)
+                                        : UsuarioHome(user: user),
                                   ),
                                 );
                               },

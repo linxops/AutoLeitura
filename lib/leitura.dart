@@ -1,18 +1,15 @@
 import 'dart:convert';
+import 'package:autoleitura/api.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-const apiBaseUrl = String.fromEnvironment(
-  'API_URL',
-  defaultValue: 'https://api.autoleitura.online',
-);
-
-var apiUrl = '$apiBaseUrl/postLeituras';
+const apiUrl = '$apiBaseUrl/postLeituras';
 
 class Leitura extends StatefulWidget {
   final int userId;
+  final String? nomeUsuario;
 
-  const Leitura({super.key, required this.userId});
+  const Leitura({super.key, required this.userId, this.nomeUsuario});
 
   @override
   _LeituraState createState() => _LeituraState();
@@ -37,6 +34,13 @@ class _LeituraState extends State<Leitura> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (widget.nomeUsuario != null)
+                Text(
+                  'Usuário: ${widget.nomeUsuario}',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              const SizedBox(height: 10),
               const Text(
                 'Insira a leitura abaixo',
                 style: TextStyle(fontSize: 16),
@@ -59,6 +63,11 @@ class _LeituraState extends State<Leitura> {
                   borderRadius: BorderRadius.circular(20.0),
                   onTap: () async {
                     String leitura = leituraController.text;
+
+                    if (leitura.isEmpty) {
+                      _mostrarDialog(context, 'Informe um valor de leitura');
+                      return;
+                    }
 
                     int leituraInt = int.parse(leitura);
 
