@@ -2,52 +2,62 @@
 include_once(__DIR__ . '/../../conexao/conn.php');
 include_once(__DIR__ . '/../../date.php');
 include_once(__DIR__ . '/../../configs/config.php');
-
+require_once __DIR__ . '/../../functions/functions.php';
 
 $logDir = __DIR__ . '/../../logs';
 
 // Recebe dados JSON da requisição POST
 $data = json_decode(file_get_contents("php://input"), true);
 
-if (!$data || !isset($data["codigo"]) || !isset($data["leitura"])) {
-   
-    $mensagem_log = "LOG: " . json_encode(array("code" => 0, "message" => "Erro nos dados recebidos")) . " " . date("Y-m-d H:i:s") . PHP_EOL;
-
-    file_put_contents($logDir . "/logs.log", $mensagem_log, FILE_APPEND);
+if (!$data || !isset($data["codigo"]) || !isset($data["leitura"]) || !is_numeric($data["codigo"]) || !is_numeric($data["leitura"])) {
+    resposta(0, null, "Erro nos dados recebidos");
     exit;
 }
 
-// Obtém a data atual
+$codigo = (int) $data["codigo"];
+$leitura = (int) $data["leitura"];
 $dataLeitura = date("Y-m-d");
 
-
-// Extrai dados do JSON
-$codigo = $data["codigo"];
-$leitura = $data["leitura"];
-  
-
-// Prepara e executa a consulta SQL
-$sql = "INSERT INTO tb_leituras (mes, leitura, data, codigo) VALUES (:mes, :leitura, :dataLeitura, :codigo)";
-$stmt = $pdo->prepare($sql);
-
-$stmt->bindParam(":mes", $mesAtual);
-$stmt->bindParam(":leitura", $leitura);
-$stmt->bindParam(":dataLeitura", $dataLeitura);
-$stmt->bindParam(":codigo", $codigo);
-
-$response = array();
-
-if ($stmt->execute()) {
-    // Se a execução for bem-sucedida, retorna uma mensagem de sucesso
-    $response['code'] = 0;
-    $mensagem_log = "LOG: " . $response['message'] = "Leitura inserida com sucesso para o usuario codigo:$codigo na data -->". date("Y-m-d H:i:s") . PHP_EOL;
-    file_put_contents($logDir . "/logs.log", $mensagem_log, FILE_APPEND);
-} else {
-    // Se houver um erro na execução, retorna uma mensagem de erro
-    $response['code'] = 1;
-    $mensagem_log = "LOG: " . $response['message'] = "Erro ao inserir leitura para o usuario codigo:$codigo na data --> ". date("Y-m-d H:i:s") . PHP_EOL;
-    file_put_contents($logDir . "/logs.log", $mensagem_log, FILE_APPEND);
+// Valida o usuário
+$stmt = $pdo->prepare("SELECT id FROM tb_usuarios WHERE id = :codigo");
+$stmt->bindParam(":codigo", $codigo, PDO::PARAM_INT);
+$stmt->execute();
+if (!$stmt->fetch()) {
+    resposta(0, null, "Usuário não encontrado");
+    exit;
 }
 
-echo json_encode($response);
-?>
+// Upsert: insere ou atualiza a leitura do mês (UNIQUE codigo + mes)
+$stmt = $pdo->prepare("SELECT id FROM tb_leituras WHERE codigo = :codigo AND mes = :mes");
+$stmt->bindParam(":codigo", $codigo, PDO::PARAM_INT);
+$stmt->bindParam(":mes", $mesAtual);
+$stmt->execute();
+$existe = $stmt->fetch();
+
+if ($existe) {
+    $sql = "UPDATE tb_leituras SET leitura = :leitura, data = :dataLeitura
+            WHERE codigo = :codigo AND mes = :mes";
+} else {
+    $sql = "INSERT INTO tb_leituras (mes, leitura, data, codigo)
+            VALUES (:mes, :leitura, :dataLeitura, :codigo)";
+}
+
+$stmt = $pdo->prepare($sql);
+$stmt->bindParam(":codigo", $codigo, PDO::PARAM_INT);
+$stmt->bindParam(":mes", $mesAtual);
+$stmt->bindParam(":leitura", $leitura, PDO::PARAM_INT);
+$stmt->bindParam(":dataLeitura", $dataLeitura);
+
+try {
+    if (!$stmt->execute()) {
+        throw new PDOException("Falha ao executar a consulta");
+    }
+    $acao = $existe ? "atualizada" : "inserida";
+    resposta(0, null, "Leitura $acao com sucesso para o usuario codigo:$codigo no mes: $mesAtual");
+    $mensagem_log = "LOG: Leitura $acao para o usuario codigo:$codigo no mes: $mesAtual " . date("Y-m-d H:i:s") . PHP_EOL;
+    file_put_contents($logDir . '/logs.log', $mensagem_log, FILE_APPEND);
+} catch (PDOException $e) {
+    $mensagem_log = "LOG: Erro ao salvar leitura do usuário $codigo: " . $e->getMessage() . " " . date("Y-m-d H:i:s") . PHP_EOL;
+    file_put_contents($logDir . '/logs.log', $mensagem_log, FILE_APPEND);
+    resposta(1, null, "Erro ao inserir leitura para o usuario codigo:$codigo na data --> " . date("Y-m-d H:i:s"));
+}
