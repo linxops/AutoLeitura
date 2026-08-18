@@ -1,0 +1,14 @@
+.git
+.gitignore
+.gitattributes
+.githooks
+.github
+AGENTS.md
+README.md
+api
+android
+build
+test
+.deploy_homol
+.scripts
+*.log

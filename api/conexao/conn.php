@@ -2,6 +2,19 @@
 include_once("env.php");
 date_default_timezone_set('America/Sao_Paulo');
 
+// CORS apenas para testes locais (Flutter web). Em produção/Android fica desativado:
+// a origem é definida pela env ALLOW_CORS_ORIGIN no docker-compose.
+$corsOrigem = getenv('ALLOW_CORS_ORIGIN');
+if ($corsOrigem !== false && $corsOrigem !== '') {
+    header("Access-Control-Allow-Origin: $corsOrigem");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
+}
+
 $logDir = __DIR__ . '/../logs';
 try{
 	

@@ -1,0 +1,80 @@
+name: autoleitura
+
+# Infra local de desenvolvimento/teste:
+#   db  -> MariaDB 11.4 (carrega o schema/seed de api/sql/db_autoleitura.sql)
+#   api -> PHP 8.4 + Apache (rewrite do .htaccess), gera conexao/env.php a partir das envs
+#   web -> build do Flutter web (imagem do SDK) servido por nginx
+# Uso: docker compose up --build
+#   Flutter web:  http://localhost:8081   (dart-define API_URL=http://localhost:8000)
+#   API:          http://localhost:8000   (CORS liberado para a origem do web)
+#   MariaDB:      localhost:3306
+
+services:
+  db:
+    image: mariadb:11.4
+    container_name: autoleitura-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-db_autoleitura}
+      MARIADB_USER: ${MARIADB_USER:-autoleitura}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-autoleitura}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./api/sql/db_autoleitura.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - autoleitura
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: autoleitura-api
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: ${MARIADB_DATABASE:-db_autoleitura}
+      MYSQL_USER: ${MARIADB_USER:-autoleitura}
+      MYSQL_PASSWORD: ${MARIADB_PASSWORD:-autoleitura}
+      # CORS só para teste local do Flutter web (origem do container web)
+      ALLOW_CORS_ORIGIN: ${ALLOW_CORS_ORIGIN:-http://localhost:8081}
+    ports:
+      - "${API_PORT:-8000}:80"
+    volumes:
+      - ./api:/var/www/html
+      - api_logs:/var/www/html/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - autoleitura
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        # Aponta o app para a API local (sobrescrevível via env API_URL)
+        API_URL: ${API_URL:-http://localhost:8000}
+    container_name: autoleitura-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8081}:80"
+    depends_on:
+      - api
+    networks:
+      - autoleitura
+
+volumes:
+  db_data:
+  api_logs:
+
+networks:
+  autoleitura:
