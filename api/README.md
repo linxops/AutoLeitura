@@ -71,7 +71,7 @@ Login do usuário pelo código (`id`) + senha. Valida a senha com `password_veri
 
 ## POST /postLeituras
 
-Insere a leitura do mês atual do usuário. **Atenção**: sucesso usa `code:0`.
+Insere a leitura do mês atual do usuário ou **atualiza** se já existir (upsert pelo UNIQUE `codigo` + `mes`). **Atenção**: sucesso usa `code:0`.
 
 **Body (JSON):**
 
@@ -79,19 +79,19 @@ Insere a leitura do mês atual do usuário. **Atenção**: sucesso usa `code:0`.
 {"codigo":1,"leitura":62}
 ```
 
-**Sucesso**:
+**Sucesso (inseriu ou atualizou):**
 
 ```json
-{"code":0,"message":"Leitura inserida com sucesso para o usuario codigo:1 na data -->..."}
+{"code":0,"message":"Leitura inserida com sucesso para o usuario codigo:1 no mes: Agosto"}
 ```
 
-**Erro no banco:**
+**Erros** (`200`):
 
 ```json
+{"code":0,"message":"Erro nos dados recebidos"}
+{"code":0,"message":"Usuário não encontrado"}
 {"code":1,"message":"Erro ao inserir leitura para o usuario codigo:1 na data -->..."}
 ```
-
-**Dados inválidos:** resposta vazia (a rota loga o erro e encerra sem `echo`).
 
 ---
 
