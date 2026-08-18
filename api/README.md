@@ -13,6 +13,8 @@ API PHP (sem framework) do app AutoLeitura. Roteamento: `.htaccess` → `index.p
 | --- | --- | --- |
 | GET | `/usuario` | Lista todos os usuários (sem senha) |
 | POST | `/login` | Login por código + senha (bcrypt) |
+| POST | `/atualizar_usuario` | Atualiza dados de um usuário (admin) |
+| POST | `/cadastrar_usuario` | Cadastra um novo usuário (admin) |
 | POST | `/postLeituras` | Insere a leitura do mês atual |
 | GET | `/leituras` | Lista as leituras do mês atual |
 | POST | `/calcular_conta` | Calcula/atualiza a conta do mês do usuário |
@@ -91,6 +93,74 @@ Insere a leitura do mês atual do usuário ou **atualiza** se já existir (upser
 {"code":0,"message":"Erro nos dados recebidos"}
 {"code":0,"message":"Usuário não encontrado"}
 {"code":1,"message":"Erro ao inserir leitura para o usuario codigo:1 na data -->..."}
+```
+
+---
+
+## POST /atualizar_usuario
+
+Atualiza os dados de um usuário existente (uso administrativo). Só altera os campos enviados. `codigo` é obrigatório; os demais são opcionais.
+
+**Body (JSON):**
+
+```json
+{"codigo":1,"nome":"Administrador","local":"A","celular":"11999990000","email":"admin@autoleitura.local","role":"admin","senha":"novaSenha"}
+```
+
+**Sucesso** (`200`):
+
+```json
+{"code":1,"result":[{"id":1,"local":"A","nome":"Administrador","celular":"11999990000","email":"admin@autoleitura.local","role":"admin"}]}
+```
+
+**Erros** (`200`):
+
+```json
+{"code":0,"message":"Erro nos dados recebidos"}
+{"code":0,"message":"Usuário não encontrado"}
+{"code":0,"message":"Nome inválido"}
+{"code":0,"message":"Local deve ter 1 caractere"}
+{"code":0,"message":"Celular inválido (11 dígitos)"}
+{"code":0,"message":"Celular já cadastrado para outro usuário"}
+{"code":0,"message":"E-mail inválido"}
+{"code":0,"message":"E-mail já cadastrado para outro usuário"}
+{"code":0,"message":"Role inválido (usuario ou admin)"}
+{"code":0,"message":"Senha deve ter pelo menos 6 caracteres"}
+{"code":0,"message":"Nenhum campo para atualizar"}
+```
+
+Se `senha` for enviada, é gravada com hash bcrypt.
+
+---
+
+## POST /cadastrar_usuario
+
+Cadastra um novo usuário (uso administrativo). `nome`, `local`, `celular` e `senha` são obrigatórios; `email` e `role` opcionais (`role` default `usuario`).
+
+**Body (JSON):**
+
+```json
+{"nome":"Fulano","local":"F","celular":"11933334444","email":"fulano@exemplo.com","senha":"fulano@2026","role":"usuario"}
+```
+
+**Sucesso** (`200`):
+
+```json
+{"code":1,"result":[{"id":7,"local":"F","nome":"Fulano","celular":"11933334444","email":"fulano@exemplo.com","role":"usuario"}]}
+```
+
+**Erros** (`200`):
+
+```json
+{"code":0,"message":"Erro nos dados recebidos"}
+{"code":0,"message":"Nome inválido"}
+{"code":0,"message":"Local deve ter 1 caractere"}
+{"code":0,"message":"Celular inválido (11 dígitos)"}
+{"code":0,"message":"Celular já cadastrado"}
+{"code":0,"message":"E-mail inválido"}
+{"code":0,"message":"E-mail já cadastrado"}
+{"code":0,"message":"Senha deve ter pelo menos 6 caracteres"}
+{"code":0,"message":"Role inválido (usuario ou admin)"}
 ```
 
 ---
