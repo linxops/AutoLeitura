@@ -27,6 +27,16 @@ abstract class RouteSwitch
         require __DIR__ . '/endpoints/usuarios/login.php';
     }
 
+    protected function atualizar_usuario()
+    {
+        require __DIR__ . '/endpoints/usuarios/atualizar_usuario.php';
+    }
+
+    protected function cadastrar_usuario()
+    {
+        require __DIR__ . '/endpoints/usuarios/cadastrar_usuario.php';
+    }
+
     protected function calcular_conta()
     {
         require __DIR__ . '/endpoints/contas/calcular_conta.php';
