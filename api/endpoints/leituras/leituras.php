@@ -1,10 +1,10 @@
 <?php
-include_once("/../../conexao/conn.php");
-include_once("/../../date.php");
-include_once("/../../configs/config.php");
+include_once(__DIR__ . '/../../conexao/conn.php');
+include_once(__DIR__ . '/../../date.php');
+include_once(__DIR__ . '/../../configs/config.php');
 
 
-$dir = "../logs/logs.log";
+$logDir = __DIR__ . '/../../logs';
 
 // Recebe dados JSON da requisição POST
 $data = json_decode(file_get_contents("php://input"), true);
@@ -13,7 +13,7 @@ if (!$data || !isset($data["codigo"]) || !isset($data["leitura"])) {
    
     $mensagem_log = "LOG: " . json_encode(array("code" => 0, "message" => "Erro nos dados recebidos")) . " " . date("Y-m-d H:i:s") . PHP_EOL;
 
-    file_put_contents($dir, $mensagem_log, FILE_APPEND);
+    file_put_contents($logDir . "/logs.log", $mensagem_log, FILE_APPEND);
     exit;
 }
 
@@ -41,12 +41,12 @@ if ($stmt->execute()) {
     // Se a execução for bem-sucedida, retorna uma mensagem de sucesso
     $response['code'] = 0;
     $mensagem_log = "LOG: " . $response['message'] = "Leitura inserida com sucesso para o usuario codigo:$codigo na data -->". date("Y-m-d H:i:s") . PHP_EOL;
-    file_put_contents($dir, $mensagem_log, FILE_APPEND);
+    file_put_contents($logDir . "/logs.log", $mensagem_log, FILE_APPEND);
 } else {
     // Se houver um erro na execução, retorna uma mensagem de erro
     $response['code'] = 1;
     $mensagem_log = "LOG: " . $response['message'] = "Erro ao inserir leitura para o usuario codigo:$codigo na data --> ". date("Y-m-d H:i:s") . PHP_EOL;
-    file_put_contents($dir, $mensagem_log, FILE_APPEND);
+    file_put_contents($logDir . "/logs.log", $mensagem_log, FILE_APPEND);
 }
 
 echo json_encode($response);
