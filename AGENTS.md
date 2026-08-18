@@ -14,6 +14,7 @@ App Flutter (`autoleitura`) Android-only, com a API PHP em `api/` (antes um repo
 - Infra local (`docker-compose.yml`): 3 serviços interligados — `db` (MariaDB 11.4, carrega `api/sql/db_autoleitura.sql`), `api` (PHP 8.4 Apache, gera `conexao/env.php` das envs `MYSQL_*`; CORS só se `ALLOW_CORS_ORIGIN` existir — configurado em `conexao/conn.php`) e `web` (Flutter web → nginx). Portas: DB `3306`, API `8000`, Web `8081`. Use `docker compose up --build` (primeira vez baixa a imagem do Flutter ~4GB). O CORS do teste local libera `http://localhost:8081`; em produção/Android fica desativado.
 - `.scripts/` e `.deploy_homol/` são mantidos em git para o job Deploy do CI (mail + download do APK). `downloadAPK.sh` é stub com placeholders `OWNER/REPO/ARTIFACT_ID`.
 - `test/widget_test.dart`: testes de Home (→ Login) e campos de Login — atualizados para os textos reais de `lib/`; não fazem chamadas de rede.
+- `proximos passos.md` é **gitignored** (notas locais de pendências/ideias). Se algo de pendência útil para a próxima sessão surgir, atualize-o (ele não sobe para o repo).
 
 ## Comandos
 
